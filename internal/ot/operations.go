@@ -1,14 +1,9 @@
 package ot
 
-import (
-	"bytes"
-	"slices"
-)
-
 // An Operation is an atomic edit that can be applied to a buffer.
 type Operation interface {
 	// Apply returns the result of applying an Operation to a buffer.
-	Apply(buf []byte) []byte
+	Apply(buf string) string
 
 	// Rebase returns an Operation that will have the same effect as the receiver
 	// if applied immediately after the provided operation.
@@ -18,7 +13,7 @@ type Operation interface {
 // An Insertion adds text before a specified 0-indexed position.
 type Insertion struct {
 	Pos  uint
-	Text []byte
+	Text string
 }
 
 // A Deletion removes text starting from a specified 0-indexed position.
@@ -27,8 +22,8 @@ type Deletion struct {
 	Len uint
 }
 
-func (op Insertion) Apply(buf []byte) []byte {
-	return slices.Insert(buf, int(op.Pos), op.Text...)
+func (op Insertion) Apply(buf string) string {
+	return buf[:op.Pos] + op.Text + buf[op.Pos:]
 }
 
 func (op Insertion) Rebase(on Operation) Operation {
@@ -37,7 +32,7 @@ func (op Insertion) Rebase(on Operation) Operation {
 		switch {
 		case op.Pos < on.Pos:
 			return op
-		case op.Pos == on.Pos && bytes.Compare(op.Text, on.Text) == -1:
+		case op.Pos == on.Pos && op.Text < on.Text:
 			return op
 		default:
 			return Insertion{Pos: op.Pos + uint(len(on.Text)), Text: op.Text}
@@ -56,8 +51,8 @@ func (op Insertion) Rebase(on Operation) Operation {
 	}
 }
 
-func (op Deletion) Apply(buf []byte) []byte {
-	return slices.Delete(buf, int(op.Pos), int(op.Pos+op.Len))
+func (op Deletion) Apply(buf string) string {
+	return buf[:op.Pos] + buf[op.Pos+op.Len:]
 }
 
 func (op Deletion) Rebase(on Operation) Operation {

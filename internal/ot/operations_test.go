@@ -1,7 +1,6 @@
 package ot_test
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/shed-protocol/shed/internal/ot"
@@ -9,28 +8,28 @@ import (
 
 func TestInsert(t *testing.T) {
 	cases := []struct {
-		start, want []byte
+		start, want string
 		op          ot.Insertion
 	}{
 		{
-			start: []byte(""),
-			want:  []byte("hello"),
-			op:    ot.Insertion{Pos: 0, Text: []byte("hello")},
+			start: "",
+			want:  "hello",
+			op:    ot.Insertion{Pos: 0, Text: "hello"},
 		},
 		{
-			start: []byte("hello"),
-			want:  []byte("hello world"),
-			op:    ot.Insertion{Pos: 5, Text: []byte(" world")},
+			start: "hello",
+			want:  "hello world",
+			op:    ot.Insertion{Pos: 5, Text: " world"},
 		},
 		{
-			start: []byte("hllo"),
-			want:  []byte("hello"),
-			op:    ot.Insertion{Pos: 1, Text: []byte("e")},
+			start: "hllo",
+			want:  "hello",
+			op:    ot.Insertion{Pos: 1, Text: "e"},
 		},
 	}
 
 	for _, c := range cases {
-		if got := c.op.Apply(c.start); !bytes.Equal(got, c.want) {
+		if got := c.op.Apply(c.start); got != c.want {
 			t.Errorf("insertion failed: got %s, want %s", got, c.want)
 		}
 	}
@@ -38,28 +37,28 @@ func TestInsert(t *testing.T) {
 
 func TestDelete(t *testing.T) {
 	cases := []struct {
-		start, want []byte
+		start, want string
 		op          ot.Deletion
 	}{
 		{
-			start: []byte(""),
-			want:  []byte(""),
+			start: "",
+			want:  "",
 			op:    ot.Deletion{Pos: 0, Len: 0},
 		},
 		{
-			start: []byte("hello world"),
-			want:  []byte("hello"),
+			start: "hello world",
+			want:  "hello",
 			op:    ot.Deletion{Pos: 5, Len: 6},
 		},
 		{
-			start: []byte("hello"),
-			want:  []byte("hllo"),
+			start: "hello",
+			want:  "hllo",
 			op:    ot.Deletion{Pos: 1, Len: 1},
 		},
 	}
 
 	for _, c := range cases {
-		if got := c.op.Apply(c.start); !bytes.Equal(got, c.want) {
+		if got := c.op.Apply(c.start); got != c.want {
 			t.Errorf("deletion failed: got %s, want %s", got, c.want)
 		}
 	}
@@ -67,17 +66,17 @@ func TestDelete(t *testing.T) {
 
 func TestOperationCommutativity(t *testing.T) {
 	var cases = []struct {
-		start    []byte
+		start    string
 		opA, opB ot.Operation
 	}{
 		{
-			start: []byte(""),
-			opA:   ot.Insertion{Pos: 0, Text: []byte("hello")},
-			opB:   ot.Insertion{Pos: 0, Text: []byte("world")},
+			start: "",
+			opA:   ot.Insertion{Pos: 0, Text: "hello"},
+			opB:   ot.Insertion{Pos: 0, Text: "world"},
 		},
 		{
-			start: []byte("hello"),
-			opA:   ot.Insertion{Pos: 5, Text: []byte(" world")},
+			start: "hello",
+			opA:   ot.Insertion{Pos: 5, Text: " world"},
 			opB:   ot.Deletion{Pos: 0, Len: 5},
 		},
 	}
@@ -100,18 +99,18 @@ func TestOperationCommutativity(t *testing.T) {
 func valid(start string, op ot.Operation) bool {
 	switch op := op.(type) {
 	case ot.Insertion:
-		return int(op.Pos) <= len([]byte(start))
+		return int(op.Pos) <= len(start)
 	case ot.Deletion:
-		return int(op.Pos)+int(op.Len) <= len([]byte(start))
+		return int(op.Pos)+int(op.Len) <= len(start)
 	}
 	panic("unhandled operation type")
 }
 
 func FuzzInsertInsertCommutativity(f *testing.F) {
-	f.Add("0000", uint(0), uint(3), []byte("hello"), []byte("world"))
-	f.Add("0000", uint(2), uint(2), []byte("hello"), []byte("world"))
-	f.Add("0000", uint(0), uint(0), []byte("hello"), []byte("hello"))
-	f.Fuzz(func(t *testing.T, start string, posA, posB uint, textA, textB []byte) {
+	f.Add("0000", uint(0), uint(3), "hello", "world")
+	f.Add("0000", uint(2), uint(2), "hello", "world")
+	f.Add("0000", uint(0), uint(0), "hello", "hello")
+	f.Fuzz(func(t *testing.T, start string, posA, posB uint, textA, textB string) {
 		opA := ot.Insertion{Pos: posA, Text: textA}
 		opB := ot.Insertion{Pos: posB, Text: textB}
 
@@ -119,7 +118,7 @@ func FuzzInsertInsertCommutativity(f *testing.F) {
 			t.Skip()
 		}
 
-		a, b := []byte(start), []byte(start)
+		a, b := start, start
 
 		a = opA.Apply(a)
 		a = opB.Rebase(opA).Apply(a)
@@ -133,10 +132,10 @@ func FuzzInsertInsertCommutativity(f *testing.F) {
 }
 
 func FuzzInsertDeleteCommutativity(f *testing.F) {
-	f.Add("0000", uint(0), uint(3), []byte("hello"), uint(1))
-	f.Add("0000", uint(1), uint(1), []byte("hello"), uint(3))
-	f.Add("0000", uint(1), uint(0), []byte("hello"), uint(3))
-	f.Fuzz(func(t *testing.T, start string, posA, posB uint, textA []byte, lenB uint) {
+	f.Add("0000", uint(0), uint(3), "hello", uint(1))
+	f.Add("0000", uint(1), uint(1), "hello", uint(3))
+	f.Add("0000", uint(1), uint(0), "hello", uint(3))
+	f.Fuzz(func(t *testing.T, start string, posA, posB uint, textA string, lenB uint) {
 		opA := ot.Insertion{Pos: posA, Text: textA}
 		opB := ot.Deletion{Pos: posB, Len: lenB}
 
@@ -144,7 +143,7 @@ func FuzzInsertDeleteCommutativity(f *testing.F) {
 			t.Skip()
 		}
 
-		a, b := []byte(start), []byte(start)
+		a, b := start, start
 
 		a = opA.Apply(a)
 		a = opB.Rebase(opA).Apply(a)
@@ -174,7 +173,7 @@ func FuzzDeleteDeleteCommutativity(f *testing.F) {
 			t.Skip()
 		}
 
-		a, b := []byte(start), []byte(start)
+		a, b := start, start
 
 		a = opA.Apply(a)
 		a = opB.Rebase(opA).Apply(a)

@@ -96,6 +96,30 @@ func TestOperationCommutativity(t *testing.T) {
 	}
 }
 
+func TestRebaseDeletionPanicsOnInvalidOperation(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic")
+		}
+	}()
+
+	var invalidOp ot.Operation
+	op := ot.Insertion{Pos: 5, Text: "hello"}
+	op.Rebase(invalidOp)
+}
+
+func TestRebaseInsertionPanicsOnInvalidOperation(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("expected panic")
+		}
+	}()
+
+	var invalidOp ot.Operation
+	op := ot.Deletion{Pos: 5, Len: 2}
+	op.Rebase(invalidOp)
+}
+
 func valid(start string, op ot.Operation) bool {
 	switch op := op.(type) {
 	case ot.Insertion:

@@ -5,12 +5,30 @@ import (
 	"net"
 )
 
+func ChanToConn(ch <-chan Message, conn net.Conn) {
+	for m := range ch {
+		if err := writeMessage(conn, m); err != nil {
+			break
+		}
+	}
+}
+
+func ConnToChan(conn net.Conn, ch chan<- Message) {
+	for {
+		m, err := readMessage(conn)
+		if err != nil {
+			break
+		}
+		ch <- m
+	}
+}
+
 type message struct {
 	Kind MessageKind     `json:"kind"`
 	Body json.RawMessage `json:"body"`
 }
 
-func ReadMessage(conn net.Conn) (m Message, err error) {
+func readMessage(conn net.Conn) (m Message, err error) {
 	content, err := ReadContent(conn)
 	if err != nil {
 		return
@@ -25,7 +43,7 @@ func ReadMessage(conn net.Conn) (m Message, err error) {
 	return
 }
 
-func WriteMessage(conn net.Conn, msg Message) error {
+func writeMessage(conn net.Conn, msg Message) error {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return err

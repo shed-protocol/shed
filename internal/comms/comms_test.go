@@ -9,44 +9,32 @@ import (
 	"github.com/shed-protocol/shed/internal/ot"
 )
 
-func TestReadMessage(t *testing.T) {
-	alice, bob := net.Pipe()
-	defer alice.Close()
-	defer bob.Close()
+func TestReadWrite(t *testing.T) {
+	connA, connB := net.Pipe()
+	defer connA.Close()
+	defer connB.Close()
 
-	msg1 := comms.InsertionMessage{Op: ot.Insertion{Pos: 2, Text: "hello"}}
-	msg2 := comms.DeletionMessage{Op: ot.Deletion{Pos: 2, Len: 1}}
+	alice := make(chan comms.Message)
+	bob := make(chan comms.Message)
+
+	m1 := comms.InsertionMessage{ot.Insertion{Pos: 2, Text: "hello"}}
+	m2 := comms.DeletionMessage{ot.Deletion{Pos: 2, Len: 3}}
 
 	var wg sync.WaitGroup
 	wg.Go(func() {
-		comms.WriteMessage(alice, msg1)
-		comms.WriteMessage(alice, msg2)
+		go comms.ChanToConn(alice, connA)
+		alice <- m1
+		alice <- m2
+		close(alice)
 	})
-	wg.Go(func() {
-		got, err := comms.ReadMessage(bob)
-		if err != nil {
-			t.Errorf("error reading message: %s", err)
-		}
-		switch got := got.(type) {
-		case *comms.InsertionMessage:
-			if *got != msg1 {
-				t.Errorf("received message (%+v) != sent message (%+v)", *got, msg1)
-			}
-		default:
-			t.Errorf("received message (%T) != sent message (%T)", got, msg1)
-		}
 
-		got, err = comms.ReadMessage(bob)
-		if err != nil {
-			t.Errorf("error reading message: %s", err)
+	wg.Go(func() {
+		go comms.ConnToChan(connB, bob)
+		if got := <-bob; *got.(*comms.InsertionMessage) != m1 {
+			t.Errorf("got %v, want %v", got, m1)
 		}
-		switch got := got.(type) {
-		case *comms.DeletionMessage:
-			if *got != msg2 {
-				t.Errorf("received message (%+v) != sent message (%+v)", *got, msg2)
-			}
-		default:
-			t.Errorf("received message (%T) != sent message (%T)", got, msg2)
+		if got := <-bob; *got.(*comms.DeletionMessage) != m2 {
+			t.Errorf("got %v, want %v", got, m2)
 		}
 	})
 	wg.Wait()

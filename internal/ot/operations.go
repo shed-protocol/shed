@@ -12,14 +12,14 @@ type Operation interface {
 
 // An Insertion adds text before a specified 0-indexed position.
 type Insertion struct {
-	Pos  uint
-	Text string
+	Pos  uint   `json:"pos"`
+	Text string `json:"text"`
 }
 
 // A Deletion removes text starting from a specified 0-indexed position.
 type Deletion struct {
-	Pos uint
-	Len uint
+	Pos uint `json:"pos"`
+	Len uint `json:"len"`
 }
 
 func (op Insertion) Apply(buf string) string {

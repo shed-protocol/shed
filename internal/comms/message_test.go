@@ -8,6 +8,7 @@ func TestMessageKinds(t *testing.T) {
 	kinds := []MessageKind{
 		OP_INSERTION,
 		OP_DELETION,
+		ACK_CHANGE,
 	}
 	for _, k := range kinds {
 		msg := MessageOfKind(k)

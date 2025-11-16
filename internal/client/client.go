@@ -9,36 +9,32 @@ import (
 )
 
 type Client struct {
-	editor net.Conn
-	eIn    chan<- comms.Message
-	eOut   <-chan comms.Message
+	eIn  chan<- comms.Message
+	eOut <-chan comms.Message
 
-	server net.Conn
-	queue  []comms.Message
-	sent   comms.Message
-	sIn    chan<- comms.Message
-	sOut   <-chan comms.Message
+	queue []comms.Message
+	sent  comms.Message
+	sIn   chan<- comms.Message
+	sOut  <-chan comms.Message
 }
 
 func (c *Client) Attach(editor net.Conn) {
 	eIn := make(chan comms.Message)
 	eOut := make(chan comms.Message)
-	c.editor = editor
 	c.eIn = eIn
 	c.eOut = eOut
-	go comms.ChanToConn(eIn, c.editor)
-	go comms.ConnToChan(c.editor, eOut)
+	go comms.ChanToConn(eIn, editor)
+	go comms.ConnToChan(editor, eOut)
 }
 
 func (c *Client) Connect(server net.Conn) {
 	sIn := make(chan comms.Message)
 	sOut := make(chan comms.Message)
-	c.server = server
 	c.sIn = sIn
 	c.sOut = sOut
 	c.sent = nil
-	go comms.ChanToConn(sIn, c.server)
-	go comms.ConnToChan(c.server, sOut)
+	go comms.ChanToConn(sIn, server)
+	go comms.ConnToChan(server, sOut)
 	go c.loop()
 }
 

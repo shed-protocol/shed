@@ -38,32 +38,31 @@ func (s *MockServer) Accept(c net.Conn) {
 	go comms.ConnToChan(s.client, cOut)
 }
 
-func setupSingleClient() (*Client, *MockEditor, *MockServer) {
-	var (
-		c Client
-		e MockEditor
-		s MockServer
-	)
-	{
-		a, b := net.Pipe()
-		c.Attach(a)
-		e.Init(b)
+func setupSingleClient() (c *Client, e *MockEditor, s *MockServer, teardown func()) {
+	c = new(Client)
+	e = new(MockEditor)
+	s = new(MockServer)
+
+	a1, b1 := net.Pipe()
+	c.Attach(a1)
+	e.Init(b1)
+
+	a2, b2 := net.Pipe()
+	c.Connect(a2)
+	s.Accept(b2)
+
+	return c, e, s, func() {
+		a1.Close()
+		a2.Close()
+		b1.Close()
+		b2.Close()
 	}
-	{
-		a, b := net.Pipe()
-		c.Connect(a)
-		s.Accept(b)
-	}
-	return &c, &e, &s
 }
 
 func TestClientSendsLocalChangeToServer(t *testing.T) {
 	// Given the client has no sent changes
-	c, e, s := setupSingleClient()
-	defer e.client.Close()
-	defer c.editor.Close()
-	defer c.server.Close()
-	defer s.client.Close()
+	_, e, s, teardown := setupSingleClient()
+	defer teardown()
 
 	// When the client receives a local change
 	msg := comms.InsertionMessage{Op: ot.Insertion{Pos: 0, Text: "hello"}}
@@ -75,11 +74,8 @@ func TestClientSendsLocalChangeToServer(t *testing.T) {
 
 func TestClientSendsOneMessageAtATime(t *testing.T) {
 	// When the client receives multiple local changes
-	c, e, s := setupSingleClient()
-	defer e.client.Close()
-	defer c.editor.Close()
-	defer c.server.Close()
-	defer s.client.Close()
+	_, e, s, teardown := setupSingleClient()
+	defer teardown()
 
 	msg1 := comms.InsertionMessage{Op: ot.Insertion{Pos: 0, Text: "hello"}}
 	msg2 := comms.DeletionMessage{Op: ot.Deletion{Pos: 0, Len: 1}}
@@ -109,11 +105,8 @@ func TestClientSendsOneMessageAtATime(t *testing.T) {
 
 func TestClientSendsRemoteChangeToEditor(t *testing.T) {
 	// Given the client has no pending changes
-	c, e, s := setupSingleClient()
-	defer e.client.Close()
-	defer c.editor.Close()
-	defer c.server.Close()
-	defer s.client.Close()
+	_, e, s, teardown := setupSingleClient()
+	defer teardown()
 
 	// When the client receives a remote change
 	msg := comms.InsertionMessage{Op: ot.Insertion{Pos: 0, Text: "hello"}}
@@ -125,11 +118,8 @@ func TestClientSendsRemoteChangeToEditor(t *testing.T) {
 
 func TestClientRebasesRemoteChangesForEditor(t *testing.T) {
 	// Given the client has an unacknowledged change
-	c, e, s := setupSingleClient()
-	defer e.client.Close()
-	defer c.editor.Close()
-	defer c.server.Close()
-	defer s.client.Close()
+	_, e, s, teardown := setupSingleClient()
+	defer teardown()
 
 	localOp := ot.Insertion{Pos: 1, Text: "hello"}
 	e.local <- comms.InsertionMessage{Op: localOp}
@@ -151,11 +141,8 @@ func TestClientRebasesRemoteChangesForEditor(t *testing.T) {
 
 func TestClientRebasesQueuedChangesForServer(t *testing.T) {
 	// Given the client has pending changes
-	c, e, s := setupSingleClient()
-	defer e.client.Close()
-	defer c.editor.Close()
-	defer c.server.Close()
-	defer s.client.Close()
+	c, e, s, teardown := setupSingleClient()
+	defer teardown()
 
 	localOp1 := ot.Insertion{Pos: 1, Text: "hello"}
 	msg1 := comms.InsertionMessage{Op: localOp1}

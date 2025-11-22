@@ -9,6 +9,7 @@ type MessageKind uint8
 const (
 	OP_INSERTION MessageKind = iota + 1
 	OP_DELETION
+	ACK_CHANGE
 )
 
 func MessageOfKind(k MessageKind) Message {
@@ -17,6 +18,8 @@ func MessageOfKind(k MessageKind) Message {
 		return &InsertionMessage{}
 	case OP_DELETION:
 		return &DeletionMessage{}
+	case ACK_CHANGE:
+		return &AcknowledgeChange{}
 	default:
 		panic("unrecognized message kind")
 	}
@@ -40,4 +43,12 @@ type DeletionMessage struct {
 
 func (DeletionMessage) Kind() MessageKind {
 	return OP_DELETION
+}
+
+type AcknowledgeChange struct {
+	Op ot.Deletion
+}
+
+func (AcknowledgeChange) Kind() MessageKind {
+	return ACK_CHANGE
 }

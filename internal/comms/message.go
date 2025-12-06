@@ -46,7 +46,6 @@ func (DeletionMessage) Kind() MessageKind {
 }
 
 type AcknowledgeChange struct {
-	Op ot.Deletion
 }
 
 func (AcknowledgeChange) Kind() MessageKind {

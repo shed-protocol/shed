@@ -42,14 +42,14 @@ func (c *Client) loop() {
 	for {
 		select {
 		case msg := <-c.eOut:
-			if k := msg.Kind(); k == comms.OP_DELETION || k == comms.OP_INSERTION {
+			if msg.Kind() == comms.BUFFER_OP {
 				c.queue = append(c.queue, msg)
 			}
 		case msg := <-c.sOut:
 			switch msg.Kind() {
 			case comms.ACK_CHANGE:
 				c.sent = nil
-			case comms.OP_INSERTION, comms.OP_DELETION:
+			case comms.BUFFER_OP:
 				{
 					op, _ := asOp(msg)
 					if c.sent != nil {
@@ -62,23 +62,13 @@ func (c *Client) loop() {
 							op = op.Rebase(on)
 						}
 					}
-					switch op := op.(type) {
-					case ot.Insertion:
-						c.eIn <- comms.InsertionMessage{Op: op}
-					case ot.Deletion:
-						c.eIn <- comms.DeletionMessage{Op: op}
-					}
+					c.eIn <- comms.OpMessage{Op: op}
 				}
 				{
 					on, _ := asOp(msg)
 					for i, m := range c.queue {
 						if op, ok := asOp(m); ok {
-							switch op := op.Rebase(on).(type) {
-							case ot.Insertion:
-								c.queue[i] = comms.InsertionMessage{Op: op}
-							case ot.Deletion:
-								c.queue[i] = comms.DeletionMessage{Op: op}
-							}
+							c.queue[i] = comms.OpMessage{Op: op.Rebase(on)}
 						}
 					}
 				}
@@ -96,18 +86,10 @@ func (c *Client) loop() {
 
 func asOp(m comms.Message) (op ot.Operation, ok bool) {
 	switch m := m.(type) {
-	case comms.InsertionMessage:
-		op = m.Op
-		ok = true
-	case *comms.InsertionMessage:
-		op = m.Op
-		ok = true
-	case comms.DeletionMessage:
-		op = m.Op
-		ok = true
-	case *comms.DeletionMessage:
-		op = m.Op
-		ok = true
+	case comms.OpMessage:
+		op, ok = m.Op, true
+	case *comms.OpMessage:
+		op, ok = m.Op, true
 	}
 	return
 }

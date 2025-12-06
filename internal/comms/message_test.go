@@ -6,8 +6,7 @@ import (
 
 func TestMessageKinds(t *testing.T) {
 	kinds := []MessageKind{
-		OP_INSERTION,
-		OP_DELETION,
+		BUFFER_OP,
 		ACK_CHANGE,
 	}
 	for _, k := range kinds {

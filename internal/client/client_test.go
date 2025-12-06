@@ -65,7 +65,7 @@ func TestClientSendsLocalChangeToServer(t *testing.T) {
 	defer teardown()
 
 	// When the client receives a local change
-	msg := comms.InsertionMessage{Op: ot.Insertion{Pos: 0, Text: "hello"}}
+	msg := comms.OpMessage{Op: ot.Insertion{Pos: 0, Text: "hello"}}
 	e.local <- msg
 
 	// Then the change should be sent to the server
@@ -77,13 +77,13 @@ func TestClientSendsOneMessageAtATime(t *testing.T) {
 	_, e, s, teardown := setupSingleClient()
 	defer teardown()
 
-	msg1 := comms.InsertionMessage{Op: ot.Insertion{Pos: 0, Text: "hello"}}
-	msg2 := comms.DeletionMessage{Op: ot.Deletion{Pos: 0, Len: 1}}
+	msg1 := comms.OpMessage{Op: ot.Insertion{Pos: 0, Text: "hello"}}
+	msg2 := comms.OpMessage{Op: ot.Deletion{Pos: 0, Len: 1}}
 	e.local <- msg1
 	e.local <- msg2
 
 	// Then the first change should be sent to the server
-	if got := <-s.cOut; *got.(*comms.InsertionMessage) != msg1 {
+	if got := <-s.cOut; *got.(*comms.OpMessage) != msg1 {
 		t.Fatalf("server received %v, expected %v", got, msg1)
 	}
 
@@ -98,7 +98,7 @@ func TestClientSendsOneMessageAtATime(t *testing.T) {
 	s.cIn <- comms.AcknowledgeChange{}
 
 	// Then the second change should be sent
-	if got := <-s.cOut; *got.(*comms.DeletionMessage) != msg2 {
+	if got := <-s.cOut; *got.(*comms.OpMessage) != msg2 {
 		t.Fatalf("server received %v, expected %v", got, msg2)
 	}
 }
@@ -109,7 +109,7 @@ func TestClientSendsRemoteChangeToEditor(t *testing.T) {
 	defer teardown()
 
 	// When the client receives a remote change
-	msg := comms.InsertionMessage{Op: ot.Insertion{Pos: 0, Text: "hello"}}
+	msg := comms.OpMessage{Op: ot.Insertion{Pos: 0, Text: "hello"}}
 	s.cIn <- msg
 
 	// Then the change should be sent to the editor
@@ -122,11 +122,11 @@ func TestClientRebasesRemoteChangesForEditor(t *testing.T) {
 	defer teardown()
 
 	localOp := ot.Insertion{Pos: 1, Text: "hello"}
-	e.local <- comms.InsertionMessage{Op: localOp}
+	e.local <- comms.OpMessage{Op: localOp}
 
 	// When the client receives a remote change
 	remoteOp := ot.Deletion{Pos: 2, Len: 1}
-	s.cIn <- comms.DeletionMessage{Op: remoteOp}
+	s.cIn <- comms.OpMessage{Op: remoteOp}
 
 	// Then the remote change should be rebased and sent to the editor
 	if got, ok := asOp(<-e.remote); ok {
@@ -145,20 +145,20 @@ func TestClientRebasesQueuedChangesForServer(t *testing.T) {
 	defer teardown()
 
 	localOp1 := ot.Insertion{Pos: 1, Text: "hello"}
-	msg1 := comms.InsertionMessage{Op: localOp1}
+	msg1 := comms.OpMessage{Op: localOp1}
 	e.local <- msg1
 	for c.sent == nil {
 	}
 
 	localOp2 := ot.Insertion{Pos: 6, Text: "world"}
-	msg2 := comms.InsertionMessage{Op: localOp2}
+	msg2 := comms.OpMessage{Op: localOp2}
 	e.local <- msg2
 	for len(c.queue) != 1 {
 	}
 
 	// When the client receives a remote change
 	remoteOp := ot.Deletion{Pos: 2, Len: 1}
-	s.cIn <- comms.DeletionMessage{Op: remoteOp}
+	s.cIn <- comms.OpMessage{Op: remoteOp}
 
 	// Then the remote change should be rebased and sent to the editor
 	if got, ok := asOp(<-e.remote); ok {

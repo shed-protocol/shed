@@ -53,7 +53,7 @@ func TestServerAcknowledgesChanges(t *testing.T) {
 
 	// When the client sends a change
 	go func() {
-		alice.sIn <- comms.InsertionMessage{Op: ot.Insertion{Text: "hello", Pos: 2}}
+		alice.sIn <- comms.OpMessage{Op: ot.Insertion{Text: "hello", Pos: 2}}
 	}()
 
 	// Then the server should acknowledge the change
@@ -68,13 +68,13 @@ func TestServerBroadcastsChanges(t *testing.T) {
 	defer teardown()
 
 	// When one client sends a change
-	want := comms.InsertionMessage{Op: ot.Insertion{Text: "hello", Pos: 2}}
+	want := comms.OpMessage{Op: ot.Insertion{Text: "hello", Pos: 2}}
 	go func() {
 		alice.sIn <- want
 	}()
 
 	// Then the server should relay the change to the other client
-	if got := <-bob.sOut; *got.(*comms.InsertionMessage) != want {
+	if got := <-bob.sOut; *got.(*comms.OpMessage) != want {
 		t.Errorf("Bob got %v, but Alice sent %v", got, want)
 	}
 }

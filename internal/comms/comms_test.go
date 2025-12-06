@@ -17,8 +17,8 @@ func TestReadWrite(t *testing.T) {
 	alice := make(chan comms.Message)
 	bob := make(chan comms.Message)
 
-	m1 := comms.InsertionMessage{ot.Insertion{Pos: 2, Text: "hello"}}
-	m2 := comms.DeletionMessage{ot.Deletion{Pos: 2, Len: 3}}
+	m1 := comms.OpMessage{ot.Insertion{Pos: 2, Text: "hello"}}
+	m2 := comms.OpMessage{ot.Deletion{Pos: 2, Len: 3}}
 
 	var wg sync.WaitGroup
 	wg.Go(func() {
@@ -30,10 +30,10 @@ func TestReadWrite(t *testing.T) {
 
 	wg.Go(func() {
 		go comms.ConnToChan(connB, bob)
-		if got := <-bob; *got.(*comms.InsertionMessage) != m1 {
+		if got := <-bob; *got.(*comms.OpMessage) != m1 {
 			t.Errorf("got %v, want %v", got, m1)
 		}
-		if got := <-bob; *got.(*comms.DeletionMessage) != m2 {
+		if got := <-bob; *got.(*comms.OpMessage) != m2 {
 			t.Errorf("got %v, want %v", got, m2)
 		}
 	})

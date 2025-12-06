@@ -1,5 +1,7 @@
 package ot
 
+import "encoding/json"
+
 // An Operation is an atomic edit that can be applied to a buffer.
 type Operation interface {
 	// Apply returns the result of applying an Operation to a buffer.
@@ -86,4 +88,26 @@ func (op Deletion) Rebase(on Operation) Operation {
 	default:
 		panic("unhandled operation type")
 	}
+}
+
+func (op Insertion) MarshalJSON() ([]byte, error) {
+	type insertion Insertion
+
+	return json.Marshal(struct {
+		insertion
+		Type string `json:"type"`
+	}{
+		insertion(op), "insertion",
+	})
+}
+
+func (op Deletion) MarshalJSON() ([]byte, error) {
+	type deletion Deletion
+
+	return json.Marshal(struct {
+		deletion
+		Type string `json:"type"`
+	}{
+		deletion(op), "deletion",
+	})
 }

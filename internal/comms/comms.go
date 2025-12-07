@@ -2,20 +2,20 @@ package comms
 
 import (
 	"encoding/json"
-	"net"
+	"io"
 )
 
-func ChanToConn(ch <-chan Message, conn net.Conn) {
+func ChanToWriter(ch <-chan Message, w io.Writer) {
 	for m := range ch {
-		if err := writeMessage(conn, m); err != nil {
+		if err := writeMessage(w, m); err != nil {
 			break
 		}
 	}
 }
 
-func ConnToChan(conn net.Conn, ch chan<- Message) {
+func ReaderToChan(r io.Reader, ch chan<- Message) {
 	for {
-		m, err := readMessage(conn)
+		m, err := readMessage(r)
 		if err != nil {
 			break
 		}
@@ -28,8 +28,8 @@ type message struct {
 	Body json.RawMessage `json:"body"`
 }
 
-func readMessage(conn net.Conn) (m Message, err error) {
-	content, err := ReadContent(conn)
+func readMessage(r io.Reader) (m Message, err error) {
+	content, err := ReadContent(r)
 	if err != nil {
 		return
 	}
@@ -43,7 +43,7 @@ func readMessage(conn net.Conn) (m Message, err error) {
 	return
 }
 
-func writeMessage(conn net.Conn, msg Message) error {
+func writeMessage(w io.Writer, msg Message) error {
 	body, err := json.Marshal(msg)
 	if err != nil {
 		return err
@@ -52,5 +52,5 @@ func writeMessage(conn net.Conn, msg Message) error {
 	if err != nil {
 		return err
 	}
-	return WriteContent(conn, string(content))
+	return WriteContent(w, string(content))
 }

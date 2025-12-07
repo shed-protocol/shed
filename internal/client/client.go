@@ -1,6 +1,7 @@
 package client
 
 import (
+	"io"
 	"net"
 	"slices"
 
@@ -18,13 +19,13 @@ type Client struct {
 	sOut  <-chan comms.Message
 }
 
-func (c *Client) Attach(editor net.Conn) {
+func (c *Client) Attach(editor io.ReadWriter) {
 	eIn := make(chan comms.Message)
 	eOut := make(chan comms.Message)
 	c.eIn = eIn
 	c.eOut = eOut
-	go comms.ChanToConn(eIn, editor)
-	go comms.ConnToChan(editor, eOut)
+	go comms.ChanToWriter(eIn, editor)
+	go comms.ReaderToChan(editor, eOut)
 }
 
 func (c *Client) Connect(server net.Conn) {
@@ -33,8 +34,8 @@ func (c *Client) Connect(server net.Conn) {
 	c.sIn = sIn
 	c.sOut = sOut
 	c.sent = nil
-	go comms.ChanToConn(sIn, server)
-	go comms.ConnToChan(server, sOut)
+	go comms.ChanToWriter(sIn, server)
+	go comms.ReaderToChan(server, sOut)
 	go c.loop()
 }
 

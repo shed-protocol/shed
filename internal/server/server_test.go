@@ -18,8 +18,8 @@ func (c *MockClient) Connect(conn net.Conn) {
 	sOut := make(chan comms.Message)
 	c.sIn = sIn
 	c.sOut = sOut
-	go comms.ChanToConn(sIn, conn)
-	go comms.ConnToChan(conn, sOut)
+	go comms.ChanToWriter(sIn, conn)
+	go comms.ReaderToChan(conn, sOut)
 }
 
 func setupTwoClients() (alice *MockClient, bob *MockClient, s *Server, teardown func()) {

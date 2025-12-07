@@ -22,14 +22,14 @@ func TestReadWrite(t *testing.T) {
 
 	var wg sync.WaitGroup
 	wg.Go(func() {
-		go comms.ChanToConn(alice, connA)
+		go comms.ChanToWriter(alice, connA)
 		alice <- m1
 		alice <- m2
 		close(alice)
 	})
 
 	wg.Go(func() {
-		go comms.ConnToChan(connB, bob)
+		go comms.ReaderToChan(connB, bob)
 		if got := <-bob; *got.(*comms.OpMessage) != m1 {
 			t.Errorf("got %v, want %v", got, m1)
 		}

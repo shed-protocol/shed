@@ -18,8 +18,8 @@ func (e *MockEditor) Init(c net.Conn) {
 	e.client = c
 	e.local = make(chan comms.Message)
 	e.remote = make(chan comms.Message)
-	go comms.ChanToConn(e.local, e.client)
-	go comms.ConnToChan(e.client, e.remote)
+	go comms.ChanToWriter(e.local, e.client)
+	go comms.ReaderToChan(e.client, e.remote)
 }
 
 type MockServer struct {
@@ -34,8 +34,8 @@ func (s *MockServer) Accept(c net.Conn) {
 	s.client = c
 	s.cIn = cIn
 	s.cOut = cOut
-	go comms.ChanToConn(cIn, c)
-	go comms.ConnToChan(s.client, cOut)
+	go comms.ChanToWriter(cIn, c)
+	go comms.ReaderToChan(s.client, cOut)
 }
 
 func setupSingleClient() (c *Client, e *MockEditor, s *MockServer, teardown func()) {

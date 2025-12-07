@@ -12,16 +12,22 @@ import (
 func main() {
 	LISTEN_PORT := os.Args[1]
 
-	fmt.Println("Starting server...")
-
 	l, err := net.Listen("tcp", fmt.Sprintf(":%s", LISTEN_PORT))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer l.Close()
 
-	s := new(server.Server)
+	var s server.Server
 	s.Init()
-	fmt.Println("Listening on port", LISTEN_PORT)
-	s.Start()
+	go s.Start()
+
+	for {
+		conn, err := l.Accept()
+		if err != nil {
+			continue
+		}
+
+		s.Accept(conn)
+	}
 }

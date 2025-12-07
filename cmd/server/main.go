@@ -23,6 +23,6 @@ func main() {
 
 	s := new(server.Server)
 	s.Init()
+	fmt.Println("Listening on port", LISTEN_PORT)
 	s.Start()
-	fmt.Sprintln("Listening on port %s", LISTEN_PORT)
 }

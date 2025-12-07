@@ -42,8 +42,8 @@ func (s *Server) Start() {
 func (s *Server) Accept(c net.Conn) {
 	in := make(chan comms.Message)
 	out := make(chan comms.Message)
-	go comms.ChanToConn(in, c)
-	go comms.ConnToChan(c, out)
+	go comms.ChanToWriter(in, c)
+	go comms.ReaderToChan(c, out)
 
 	s.mu.Lock()
 	id := len(s.cIns)

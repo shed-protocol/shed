@@ -2,6 +2,7 @@ package comms
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/shed-protocol/shed/internal/ot"
 )
@@ -37,29 +38,38 @@ func (OpMessage) Kind() MessageKind {
 }
 
 func (m *OpMessage) UnmarshalJSON(body []byte) error {
-	type wrapper struct {
-		Op struct {
-			Type string `json:"type"`
-			Pos  uint   `json:"pos"`
-			Len  uint   `json:"len"`
-			Text string `json:"text"`
-		} `json:"op"`
+	type opWrapper struct {
+		Op json.RawMessage `json:"op"`
 	}
-
-	var w wrapper
-	err := json.Unmarshal(body, &w)
-	if err != nil {
+	var w1 opWrapper
+	if err := json.Unmarshal(body, &w1); err != nil {
 		return err
 	}
 
-	op := w.Op
-	switch op.Type {
-	case "insertion":
-		m.Op = ot.Insertion{Pos: op.Pos, Text: op.Text}
-	case "deletion":
-		m.Op = ot.Deletion{Pos: op.Pos, Len: op.Len}
+	type typeWrapper struct {
+		Type string `json:"type"`
+	}
+	var w2 typeWrapper
+	if err := json.Unmarshal(w1.Op, &w2); err != nil {
+		return err
 	}
 
+	switch w2.Type {
+	case "insertion":
+		var op ot.Insertion
+		if err := json.Unmarshal(w1.Op, &op); err != nil {
+			return err
+		}
+		m.Op = op
+	case "deletion":
+		var op ot.Deletion
+		if err := json.Unmarshal(w1.Op, &op); err != nil {
+			return err
+		}
+		m.Op = op
+	default:
+		return fmt.Errorf("unrecognized operation type: %q", w2.Type)
+	}
 	return nil
 }
 
